@@ -1,0 +1,64 @@
+{
+  "name": "adminjs-drizzle",
+  "version": "0.0.0",
+  "description": "Drizzle ORM adapter for AdminJS",
+  "keywords": [
+    "adminjs",
+    "drizzle",
+    "admin"
+  ],
+  "license": "MIT",
+  "author": "Markus Schmidt <markus.schmidt.84@gmail.com>",
+  "repository": "makuko/adminjs-drizzle",
+  "type": "module",
+  "exports": {
+    "mysql": {
+      "types": "./dist/mysql/index.d.ts",
+      "default": "./dist/mysql/index.js"
+    },
+    "pg": {
+      "types": "./dist/pg/index.d.ts",
+      "default": "./dist/pg/index.js"
+    },
+    "sqlite": {
+      "types": "./dist/sqlite/index.d.ts",
+      "default": "./dist/sqlite/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "start:mysql": "ts-node test/mysql/index.ts",
+    "start:pg": "ts-node test/pg/index.ts",
+    "start:sqlite": "ts-node test/sqlite/index.ts",
+    "generate:mysql": "drizzle-kit generate:mysql --config=drizzle.config.mysql.ts",
+    "generate:pg": "drizzle-kit generate:pg --config=drizzle.config.pg.ts",
+    "generate:sqlite": "drizzle-kit generate:sqlite --config=drizzle.config.sqlite.ts"
+  },
+  "peerDependencies": {
+    "adminjs": ">=7",
+    "drizzle-orm": ">=0.27"
+  },
+  "devDependencies": {
+    "@adminjs/fastify": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.4",
+    "@typescript-eslint/eslint-plugin": "^5.60.1",
+    "@typescript-eslint/parser": "^5.60.1",
+    "adminjs": "^7.0.6",
+    "better-sqlite3": "^8.4.0",
+    "dotenv": "^16.3.1",
+    "drizzle-kit": "^0.19.2",
+    "drizzle-orm": "^0.27.0",
+    "eslint": "^8.43.0",
+    "fastify": "^4.18.0",
+    "mysql2": "^3.4.2",
+    "postgres": "^3.3.5",
+    "rimraf": "^5.0.1",
+    "semantic-release": "^21.0.6",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.5.3",
+    "typescript": "^5.1.3"
+  }
+}
