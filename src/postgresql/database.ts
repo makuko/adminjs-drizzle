@@ -1,19 +1,12 @@
 import { BaseDatabase } from 'adminjs';
-import {
-    MySqlDatabase,
-    MySqlQueryResultHKT,
-    MySqlTable,
-    MySqlTableWithColumns,
-    PreparedQueryHKTBase,
-    TableConfig
-} from 'drizzle-orm/mysql-core';
+import { PgDatabase, PgQueryResultHKT, PgTable, PgTableWithColumns, TableConfig } from 'drizzle-orm/pg-core';
 import { Resource } from './resource.js';
 
 export class Database extends BaseDatabase {
 
-    private db: MySqlDatabase<MySqlQueryResultHKT, PreparedQueryHKTBase>;
+    private db: PgDatabase<PgQueryResultHKT>;
 
-    private schema: Record<string, MySqlTableWithColumns<TableConfig>>;
+    private schema: Record<string, PgTableWithColumns<TableConfig>>;
 
     constructor(args: DatabaseConfig) {
         super(args);
@@ -34,7 +27,7 @@ export class Database extends BaseDatabase {
         }
 
         for (const table of Object.values(schema)) {
-            if (table instanceof MySqlTable) {
+            if (table instanceof PgTable) {
                 res.push(new Resource({ table, db }));
             }
         }
@@ -45,12 +38,12 @@ export class Database extends BaseDatabase {
     public static isAdapterFor(args?: Partial<DatabaseConfig>): boolean {
         const { db } = args ?? {};
 
-        return db instanceof MySqlDatabase;
+        return db instanceof PgDatabase;
     }
 
 }
 
 interface DatabaseConfig {
-    db: MySqlDatabase<MySqlQueryResultHKT, PreparedQueryHKTBase>;
-    schema: Record<string, MySqlTableWithColumns<TableConfig>>;
+    db: PgDatabase<PgQueryResultHKT>;
+    schema: Record<string, PgTableWithColumns<TableConfig>>;
 }

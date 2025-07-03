@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ESNext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "esnext",
     "lib": [
       "ESNext",
       "DOM"
@@ -22,14 +22,10 @@
   "include": [
     "drizzle.config.*.ts",
     "./src/**/*.ts",
-    "./test/**/*.ts",
-    "drizzle.config.sqlite.ts"
+    "./test/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist"
-  ],
-  "ts-node": {
-    "esm": true
-  }
+  ]
 }

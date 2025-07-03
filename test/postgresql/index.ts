@@ -1,23 +1,23 @@
 import AdminJSFastify from '@adminjs/fastify';
+import { PGlite } from '@electric-sql/pglite';
 import AdminJS from 'adminjs';
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/mysql2';
-import { migrate } from 'drizzle-orm/mysql2/migrator';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import Fastify from 'fastify';
-import mysql from 'mysql2/promise';
 
-import * as MySqlAdapter from '../../src/mysql/index.js';
+import * as PgAdapter from '../../src/postgresql/index.js';
 import * as schema from './schema.js';
 
-AdminJS.registerAdapter(MySqlAdapter);
+AdminJS.registerAdapter(PgAdapter);
 
 const PORT = 3000;
 
 async function start() {
-    const connection = await mysql.createConnection(process.env.MYSQL_URL!);
-    const db = drizzle({ client: connection, schema, logger: true });
+    const client = new PGlite(process.env.POSTGRESQL_URL);
+    const db = drizzle({ client, schema, logger: true });
 
-    await migrate(db, { migrationsFolder: process.env.MYSQL_MIGRATIONS! });
+    await migrate(db, { migrationsFolder: process.env.POSTGRESQL_MIGRATIONS! });
 
     const app = Fastify();
     const admin = new AdminJS({

@@ -1,5 +1,5 @@
 import { Relations, relations } from 'drizzle-orm';
-import { blob, integer, real, sqliteTable, SQLiteTableWithColumns, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const usersTable = sqliteTable(
     'users',
@@ -50,6 +50,7 @@ export const typesTable = sqliteTable(
         timestampMS: integer('timestamp_ms', { mode: 'timestamp_ms' }),
 
         buffer: blob('buffer', { mode: 'buffer' }),
-        json: blob('json', { mode: 'json' })
+        json1: blob('json1', { mode: 'json' }),
+        json2: text('json2', { mode: 'json' })
     }
 );

@@ -15,7 +15,6 @@ import {
     mediumint,
     mysqlEnum,
     mysqlTable,
-    MySqlTableWithColumns,
     real,
     serial,
     smallint,

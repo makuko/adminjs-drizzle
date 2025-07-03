@@ -8,6 +8,7 @@ import {
     SQLiteInteger,
     SQLiteReal,
     SQLiteText,
+    SQLiteTextJson,
     SQLiteTimestamp
 } from 'drizzle-orm/sqlite-core';
 
@@ -53,7 +54,7 @@ export class Property extends BaseProperty {
     public isEnum(): boolean {
         const column = this.column;
 
-        return column instanceof SQLiteText && column.enumValues.length;
+        return column instanceof SQLiteText && column.enumValues?.length;
     }
 
     public type(): PropertyType {
@@ -87,7 +88,8 @@ export class Property extends BaseProperty {
         }
 
         if (
-            column instanceof SQLiteBlobBuffer
+            column instanceof SQLiteTextJson
+            || column instanceof SQLiteBlobBuffer
             || column instanceof SQLiteBlobJson
         ) {
             return 'mixed';

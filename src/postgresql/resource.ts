@@ -1,25 +1,26 @@
 import { BaseRecord, BaseResource, Filter, flat } from 'adminjs';
 import { desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import {
-    AnySQLiteColumn,
-    BaseSQLiteDatabase,
+    AnyPgColumn,
     getTableConfig,
-    SQLiteTable,
-    SQLiteTableWithColumns,
+    PgDatabase,
+    PgQueryResultHKT,
+    PgTable,
+    PgTableWithColumns,
     TableConfig
-} from 'drizzle-orm/sqlite-core';
+} from 'drizzle-orm/pg-core';
 import { convertFilter } from '../utils/convert-filter.js';
 import { Property } from './property.js';
 
 export class Resource extends BaseResource {
 
-    private db: BaseSQLiteDatabase<'async', any>;
+    private db: PgDatabase<PgQueryResultHKT>;
 
-    private table: SQLiteTableWithColumns<TableConfig>;
+    private table: PgTableWithColumns<TableConfig>;
 
     private propertiesObject: Record<string, Property>;
 
-    private get idColumn(): AnySQLiteColumn | undefined {
+    private get idColumn(): AnyPgColumn | undefined {
         const idProperty = this.properties().find(property => property.isId());
 
         return idProperty && idProperty.column;
@@ -40,7 +41,7 @@ export class Resource extends BaseResource {
     }
 
     public databaseType(): string {
-        return 'sqlite';
+        return 'postgres';
     }
 
     public name(): string {
@@ -67,10 +68,9 @@ export class Resource extends BaseResource {
         const result = await this.db
             .select({ count: sql<number>`count(*)` })
             .from(this.table)
-            .where(convertFilter(filter))
-            .get();
+            .where(convertFilter(filter));
 
-        return result?.count ?? 0;
+        return result[0]?.count;
     }
 
     public async find(filter: Filter, params: Record<string, any> = {}): Promise<BaseRecord[]> {
@@ -83,8 +83,7 @@ export class Resource extends BaseResource {
             .where(convertFilter(filter))
             .orderBy(direction === 'asc' ? this.table[sortBy] : desc(this.table[sortBy]))
             .offset(offset)
-            .limit(limit)
-            .all();
+            .limit(limit);
 
         return results.map(result => new BaseRecord(result, this));
     }
@@ -99,10 +98,9 @@ export class Resource extends BaseResource {
         const result = await this.db
             .select()
             .from(this.table)
-            .where(eq(idColumn, id))
-            .get();
+            .where(eq(idColumn, id));
 
-        return result ? new BaseRecord(result, this) : null;
+        return result[0] ? new BaseRecord(result[0], this) : null;
     }
 
     public async findMany(ids: Array<string | number>): Promise<BaseRecord[]> {
@@ -115,14 +113,15 @@ export class Resource extends BaseResource {
         const results = await this.db
             .select()
             .from(this.table)
-            .where(inArray(idColumn, ids))
-            .all();
+            .where(inArray(idColumn, ids));
 
         return results.map(result => new BaseRecord(result, this));
     }
 
     public async create(params: Record<string, any>): Promise<Record<string, any>> {
-        return this.db.insert(this.table).values(params).returning().get();
+        const result = await this.db.insert(this.table).values(params).returning();
+
+        return result[0];
     }
 
     public async update(id: string | number, params: Record<string, any> = {}): Promise<Record<string, any>> {
@@ -132,11 +131,12 @@ export class Resource extends BaseResource {
             return {};
         }
 
-        return this.db.update(this.table)
+        const result = await this.db.update(this.table)
             .set(params)
             .where(eq(idColumn, id))
-            .returning()
-            .get();
+            .returning();
+
+        return result[0];
     }
 
     public async delete(id: string | number): Promise<void> {
@@ -146,18 +146,18 @@ export class Resource extends BaseResource {
             return;
         }
 
-        await this.db.delete(this.table).where(eq(idColumn, id)).run();
+        await this.db.delete(this.table).where(eq(idColumn, id));
     }
 
     public static isAdapterFor(args?: Partial<ResourceConfig>): boolean {
         const { table, db } = args ?? {};
 
-        return table instanceof SQLiteTable && db instanceof BaseSQLiteDatabase;
+        return table instanceof PgTable && db instanceof PgDatabase;
     }
 
-    private prepareProperties(): { [propertyPath: string]: Property } {
+    private prepareProperties(): Record<string, Property> {
         const properties = {};
-        const columns: Record<string, AnySQLiteColumn> = getTableColumns(this.table);
+        const columns: Record<string, AnyPgColumn> = getTableColumns(this.table);
         const { foreignKeys } = getTableConfig(this.table);
 
         let index = 0;
@@ -182,6 +182,6 @@ export class Resource extends BaseResource {
 }
 
 interface ResourceConfig {
-    table: SQLiteTableWithColumns<TableConfig>;
-    db: BaseSQLiteDatabase<'async', any>;
+    table: PgTableWithColumns<TableConfig>;
+    db: PgDatabase<PgQueryResultHKT>;
 }

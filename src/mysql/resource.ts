@@ -1,24 +1,21 @@
 import { BaseRecord, BaseResource, Filter, flat } from 'adminjs';
-
 import { desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
-
 import {
     AnyMySqlColumn,
     getTableConfig,
     MySqlDatabase,
+    MySqlQueryResultHKT,
     MySqlTable,
     MySqlTableWithColumns,
     PreparedQueryHKTBase,
-    QueryResultHKT,
     TableConfig
 } from 'drizzle-orm/mysql-core';
-
-import { Property } from './property.js';
 import { convertFilter } from '../utils/convert-filter.js';
+import { Property } from './property.js';
 
 export class Resource extends BaseResource {
 
-    private db: MySqlDatabase<QueryResultHKT, PreparedQueryHKTBase>;
+    private db: MySqlDatabase<MySqlQueryResultHKT, PreparedQueryHKTBase>;
 
     private table: MySqlTableWithColumns<TableConfig>;
 
@@ -74,7 +71,7 @@ export class Resource extends BaseResource {
             .from(this.table)
             .where(convertFilter(filter));
 
-        return result[0].count;
+        return result[0]?.count ?? 0;
     }
 
     public async find(filter: Filter, params: Record<string, any> = {}): Promise<BaseRecord[]> {
@@ -198,5 +195,5 @@ export class Resource extends BaseResource {
 
 interface ResourceConfig {
     table: MySqlTableWithColumns<TableConfig>;
-    db: MySqlDatabase<QueryResultHKT, PreparedQueryHKTBase>;
+    db: MySqlDatabase<MySqlQueryResultHKT, PreparedQueryHKTBase>;
 }

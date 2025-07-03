@@ -4,7 +4,7 @@ import { and, AnyColumn, eq, gte, like, lte, SQL } from 'drizzle-orm';
 function safeParseJSON(json: string): Record<string, any> | null {
     try {
         return JSON.parse(json);
-    } catch (err) {
+    } catch {
         return null;
     }
 }

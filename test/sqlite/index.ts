@@ -1,8 +1,9 @@
 import AdminJSFastify from '@adminjs/fastify';
+import { createClient } from '@libsql/client';
 import AdminJS from 'adminjs';
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import 'dotenv/config';
+import { drizzle } from 'drizzle-orm/libsql';
+import { migrate } from 'drizzle-orm/libsql/migrator';
 import Fastify from 'fastify';
 
 import * as SQLiteAdapter from '../../src/sqlite/index.js';
@@ -13,10 +14,10 @@ AdminJS.registerAdapter(SQLiteAdapter);
 const PORT = 3000;
 
 async function start() {
-    const sqlite = new Database('db.sqlite');
-    const db = drizzle(sqlite, { schema, logger: true });
+    const client = createClient({ url: process.env.SQLITE_URL! });
+    const db = drizzle({ client, schema, logger: true });
 
-    migrate(db, { migrationsFolder: './drizzle/sqlite' });
+    migrate(db, { migrationsFolder: process.env.SQLITE_MIGRATIONS! });
 
     const app = Fastify();
     const admin = new AdminJS({

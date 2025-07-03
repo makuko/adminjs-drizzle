@@ -1,6 +1,5 @@
 import { BaseDatabase } from 'adminjs';
 import { BaseSQLiteDatabase, SQLiteTable, SQLiteTableWithColumns, TableConfig } from 'drizzle-orm/sqlite-core';
-
 import { Resource } from './resource.js';
 
 export class Database extends BaseDatabase {
