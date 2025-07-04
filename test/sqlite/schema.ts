@@ -1,5 +1,5 @@
 import { Relations, relations } from 'drizzle-orm';
-import { blob, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, numeric, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const usersTable = sqliteTable(
     'users',
@@ -38,19 +38,22 @@ export const typesTable = sqliteTable(
         id: integer('id').primaryKey(),
 
         integer: integer('integer'),
+        integerBoolean: integer('integer_boolean', { mode: 'boolean' }),
+        integerTimestampMs: integer('integer_timstamp_ms', { mode: 'timestamp_ms' }),
+        integerTimestamp: integer('integer_timestamp', { mode: 'timestamp' }),
+
         real: real('real'),
-        bigint: blob('bigint', { mode: 'bigint' }),
 
         text: text('text'),
-        enum: text('enum', { enum: ['lorem', 'ispum', 'dolor'] }),
+        textEnum: text('text_enum', { enum: ['foo', 'bar', 'baz'] }),
+        textJson: text('text_json', { mode: 'json' }),
 
-        boolean: integer('boolean', { mode: 'boolean' }),
-        
-        timestamp: integer('timestamp', { mode: 'timestamp' }),
-        timestampMS: integer('timestamp_ms', { mode: 'timestamp_ms' }),
+        blobBuffer: blob('blob_buffer', { mode: 'buffer' }),
+        blobJson: blob('blob_json', { mode: 'json' }),
+        blobBigint: blob('blob_bigint', { mode: 'bigint' }),
 
-        buffer: blob('buffer', { mode: 'buffer' }),
-        json1: blob('json1', { mode: 'json' }),
-        json2: text('json2', { mode: 'json' })
+        numeric: numeric('numeric'),
+        numericNum: numeric('numeric_num', { mode: 'number' }),
+        numericBig: numeric('numeric_big', { mode: 'bigint' })
     }
 );

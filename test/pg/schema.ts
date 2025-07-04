@@ -10,9 +10,11 @@ import {
     interval,
     json,
     jsonb,
+    line,
     numeric,
     pgEnum,
     pgTable,
+    point,
     real,
     serial,
     smallint,
@@ -54,40 +56,50 @@ export const postRelations: Relations = relations(
 	})
 );
 
-export const enumEnum = pgEnum('enum', ['lorem', 'ipsum', 'dolor']);
+export const enumEnum = pgEnum('enum', ['foo', 'bar', 'baz']);
 
 export const typesTable = pgTable(
     'types',
     {
         id: serial('id').primaryKey(),
 
-        serial: serial('serial'),
-        smallserial: smallserial('smallserial'),
-        bigserial: bigserial('bigserial', { mode: 'number' }),
         integer: integer('integer'),
         smallint: smallint('smallint'),
         bigint: bigint('bigint', { mode: 'number' }),
+
+        serial: serial('serial'),
+        smallserial: smallserial('smallserial'),
+        bigserial: bigserial('bigserial', { mode: 'number' }),
+
+        boolean: boolean('boolean'),
+
+        text: text('text'),
+        textEnum: text('text_enum', { enum: ['foo', 'bar', 'baz'] }),
+        varchar: varchar('varchar'),
+        varcharEnum: varchar('varchar_enum', { enum: ['foo', 'bar', 'baz'] }),
+        char: char('char', { length: 3 }),
+        charEnum: char('char_enum', { length: 3, enum: ['foo', 'bar', 'baz'] }),
         
         numeric: numeric('numeric'),
+        numericNum: numeric('numeric_num', { mode: 'number' }),
+        numericBig: numeric('numeric_big', { mode: 'bigint' }),
         real: real('real'),
         doublePrecision: doublePrecision('double_precision'),
 
-        text: text('text'),
-        char: char('char'),
-        varchar: varchar('varchar'),
-        enum: enumEnum('enum'),
-        textEnum: text('text_enum', { enum: ['lorem', 'ipsum', 'dolor'] }),
-        charEnum: char('char_enum', { enum: ['lorem', 'ipsum', 'dolor'] }),
-        varcharEnum: varchar('varchar_enum', { enum: ['lorem', 'ipsum', 'dolor'] }),
+        json: json('json'),
+        jsonb: jsonb('jsonb'),
 
-        boolean: boolean('boolean'),
-        
         time: time('time'),
         timestamp: timestamp('timestamp'),
-        date: date('date'),
+        date: date('date', { mode: 'date' }),
+        dateStr: date('date_str', { mode: 'string' }),
         interval: interval('interval'),
 
-        json: json('json'),
-        jsonb: jsonb('jsonb')
+        point: point(),
+        pointObj: point({ mode: 'xy' }),
+        line: line(),
+        lineObj: line({ mode: 'abc' }),
+
+        enum: enumEnum('enum')
     }
 );

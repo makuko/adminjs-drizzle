@@ -36,7 +36,4 @@ lerna-debug.log*
 
 # Misc
 .adminjs
-.drizzle
-.pglite
 .env
-db.sqlite

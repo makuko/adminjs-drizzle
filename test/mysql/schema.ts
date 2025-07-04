@@ -74,28 +74,36 @@ export const typesTable = mysqlTable(
         smallint: smallint('smallint'),
         mediumint: mediumint('mediumint'),
         bigint: bigint('bigint', { mode: 'number' }),
+        bigintBig: bigint('bigint_big', { mode: 'bigint' }),
         
         real: real('real'),
         decimal: decimal('decimal'),
+        decimalNum: decimal('decimal_num', { mode: 'number' }),
+        decimalBig: decimal('decimal_big', { mode: 'bigint' }),
         double: double('double'),
         float: float('float'),
 
-        char: char('char'),
-        varchar: varchar('varchar', { length: 10 }),
+        binary: binary('binary', { length: 3 }),
+        varbinary: varbinary('varbinary', { length: 3 }),
+
+        char: char('char', { length: 3 }),
+        varchar: varchar('varchar', { length: 3 }),
+        varcharEnum: varchar('varchar_enum', { length: 3, enum: ['foo', 'bar', 'baz'] }),
         text: text('text'),
-        textEnum: text('text_enum', { enum: ['lorem', 'ipsum', 'dolor'] }),
-        enum: mysqlEnum('enum', ['lorem', 'ipsum', 'dolor']),
+        textEnum: text('text_enum', { enum: ['foo', 'bar', 'baz'] }),
 
         boolean: boolean('boolean'),
 
         date: date('date'),
         datetime: datetime('datetime'),
+        datetimeStr: datetime('datetime_str', { mode: 'string' }),
         time: time('time'),
         year: year('year'),
         timestamp: timestamp('timestamp'),
+        timestampStr: timestamp('timestamp_str', { mode: 'string' }),
 
-        binary: binary('binary'),
-        varbinary: varbinary('varbinary', { length: 2 }),
-        json: json('json')
+        json: json('json'),
+
+        enum: mysqlEnum('enum', ['foo', 'bar', 'baz'])
     }
 );

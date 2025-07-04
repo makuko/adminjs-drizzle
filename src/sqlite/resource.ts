@@ -4,8 +4,13 @@ import {
     AnySQLiteColumn,
     BaseSQLiteDatabase,
     getTableConfig,
+    SQLiteBigInt,
+    SQLiteBlobBuffer,
+    SQLiteBlobJson,
+    SQLiteNumericBigInt,
     SQLiteTable,
     SQLiteTableWithColumns,
+    SQLiteTextJson,
     TableConfig
 } from 'drizzle-orm/sqlite-core';
 import { convertFilter } from '../utils/convert-filter.js';
@@ -19,10 +24,10 @@ export class Resource extends BaseResource {
 
     private propertiesObject: Record<string, Property>;
 
-    private get idColumn(): AnySQLiteColumn | undefined {
+    private get idColumn(): AnySQLiteColumn {
         const idProperty = this.properties().find(property => property.isId());
 
-        return idProperty && idProperty.column;
+        return idProperty!.column;
     }
 
     constructor(args: ResourceConfig) {
@@ -86,67 +91,60 @@ export class Resource extends BaseResource {
             .limit(limit)
             .all();
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async findOne(id: string | number): Promise<BaseRecord | null> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return null;
-        }
-
         const result = await this.db
             .select()
             .from(this.table)
-            .where(eq(idColumn, id))
+            .where(eq(this.idColumn, id))
             .get();
 
-        return result ? new BaseRecord(result, this) : null;
+        return result
+            ? new BaseRecord(this.prepareResult(result), this)
+            : null;
     }
 
     public async findMany(ids: Array<string | number>): Promise<BaseRecord[]> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return [];
-        }
-
         const results = await this.db
             .select()
             .from(this.table)
-            .where(inArray(idColumn, ids))
+            .where(inArray(this.idColumn, ids))
             .all();
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async create(params: Record<string, any>): Promise<Record<string, any>> {
-        return this.db.insert(this.table).values(params).returning().get();
+        const result = await this.db
+            .insert(this.table)
+            .values(this.prepareParams(params))
+            .returning()
+            .get();
+
+        return this.prepareResult(result);
     }
 
     public async update(id: string | number, params: Record<string, any> = {}): Promise<Record<string, any>> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return {};
-        }
-
-        return this.db.update(this.table)
-            .set(params)
-            .where(eq(idColumn, id))
+        const result = await this.db.update(this.table)
+            .set(this.prepareParams(params))
+            .where(eq(this.idColumn, id))
             .returning()
             .get();
+
+        return this.prepareResult(result);
     }
 
     public async delete(id: string | number): Promise<void> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return;
-        }
-
-        await this.db.delete(this.table).where(eq(idColumn, id)).run();
+        await this.db
+            .delete(this.table)
+            .where(eq(this.idColumn, id))
+            .run();
     }
 
     public static isAdapterFor(args?: Partial<ResourceConfig>): boolean {
@@ -156,7 +154,7 @@ export class Resource extends BaseResource {
     }
 
     private prepareProperties(): { [propertyPath: string]: Property } {
-        const properties = {};
+        const properties: Record<string, Property> = {};
         const columns: Record<string, AnySQLiteColumn> = getTableColumns(this.table);
         const { foreignKeys } = getTableConfig(this.table);
 
@@ -179,6 +177,84 @@ export class Resource extends BaseResource {
         return properties;
     }
 
+    protected prepareParams(params: Record<string, any>): Record<string, any> {
+        const preparedParams: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(params, key);
+
+            if (typeof value === 'undefined') {
+                continue;
+            }
+
+            if (
+                property.column instanceof SQLiteBigInt
+                || property.column instanceof SQLiteNumericBigInt
+            ) {
+                preparedParams[key] = BigInt(value);
+
+                continue;
+            }
+
+            if (
+                property.column instanceof SQLiteBlobJson
+                || property.column instanceof SQLiteTextJson
+            ) {
+                preparedParams[key] = JSON.parse(value);
+
+                continue;
+            }
+
+            if (property.column instanceof SQLiteBlobBuffer) {
+                preparedParams[key] = Buffer.from(JSON.parse(value));
+
+                continue;
+            }
+
+            preparedParams[key] = value;
+        }
+
+        return preparedParams;
+    }
+
+    protected prepareResult(result: Record<string, any>): Record<string, any> {
+        const preparedResult: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(result, key);
+
+            if (
+                property.column instanceof SQLiteBigInt
+                || property.column instanceof SQLiteNumericBigInt
+            ) {
+                preparedResult[key] = value.toString();
+
+                continue;
+            }
+
+            if (
+                property.column instanceof SQLiteBlobJson
+                || property.column instanceof SQLiteTextJson
+            ) {
+                preparedResult[key] = JSON.stringify(value);
+
+                continue;
+            }
+
+            if (property.column instanceof SQLiteBlobBuffer) {
+                preparedResult[key] = JSON.stringify(Array.from(value));
+
+                continue;
+            }
+
+            preparedResult[key] = value;
+
+        }
+
+        return preparedResult;
+    }
 }
 
 interface ResourceConfig {

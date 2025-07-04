@@ -4,6 +4,11 @@ This is an [AdminJS](https://github.com/SoftwareBrothers/adminjs) adapter which 
 
 ### Installation
 
+pnpm
+```bash
+$ pnpm add adminjs-drizzle
+```
+
 yarn
 ```bash
 $ yarn add adminjs-drizzle
@@ -23,11 +28,13 @@ import AdminJS from 'adminjs';
 import { Database, Resource } from 'adminjs-drizzle/pg';
 // import { Database, Resource } from 'adminjs-drizzle/mysql';
 // import { Database, Resource } from 'adminjs-drizzle/sqlite';
+import { drizzle } from 'drizzle-orm/pglite';
+import { users } from './schema/users.js';
 
 async function setupAdminJs() {
     // For available database connections please refer to the Drizzle ORM documentation.
-    const client = postgres('postgres://user:password@host:port/db');
-    const db = drizzle(queryClient);
+    // Here we just use PGLite in memory.
+    const db = drizzle();
 
     AdminJS.registerAdapter({ Database, Resource });
 

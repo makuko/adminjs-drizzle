@@ -1,7 +1,6 @@
 import { BaseProperty, type PropertyType } from 'adminjs';
 import {
     type AnyPgColumn,
-    // PgArray,
     PgBigInt53,
     PgBigInt64,
     PgBigSerial53,
@@ -9,22 +8,22 @@ import {
     // PgBinaryVector,
     PgBoolean,
     PgChar,
-    // PgCidr,
+    PgCidr,
     PgDate,
     PgDateString,
     PgDoublePrecision,
     PgEnumColumn,
     // PgGeometry,
     // PgHalfVector,
-    // PgInet,
+    PgInet,
     PgInteger,
     PgInterval,
     PgJson,
     PgJsonb,
     PgLineABC,
     PgLineTuple,
-    // PgMacaddr,
-    // PgMacaddr8,
+    PgMacaddr,
+    PgMacaddr8,
     PgNumeric,
     PgNumericBigInt,
     PgNumericNumber,
@@ -55,7 +54,7 @@ export class Property extends BaseProperty {
     }
 
     public isEditable(): boolean {
-        return !this.isId() && this.column.name !== 'createdAt' && this.column.name !== 'updatedAt';
+        return !this.isId();
     }
 
     public isId(): boolean {
@@ -103,35 +102,52 @@ export class Property extends BaseProperty {
         const column = this.column;
 
         if (
-            column instanceof PgSerial
-            || column instanceof PgSmallSerial
+            column instanceof PgBigInt53
             || column instanceof PgBigSerial53
             || column instanceof PgBigSerial64
             || column instanceof PgInteger
+            || column instanceof PgSerial
             || column instanceof PgSmallInt
-            || column instanceof PgBigInt53
-            || column instanceof PgBigInt64
+            || column instanceof PgSmallSerial
         ) {
             return 'number';
         }
 
         if (
-            column instanceof PgNumeric
+            column instanceof PgDoublePrecision
+            || column instanceof PgNumeric
             || column instanceof PgNumericNumber
-            || column instanceof PgNumericBigInt
             || column instanceof PgReal
-            || column instanceof PgDoublePrecision
         ) {
             return 'float';
         }
 
         if (
-            column instanceof PgText
+            column instanceof PgBigInt64
             || column instanceof PgChar
-            || column instanceof PgVarchar
+            || column instanceof PgCidr
             || column instanceof PgEnumColumn
+            || column instanceof PgInet
+            || column instanceof PgInterval
+            || column instanceof PgLineABC
+            || column instanceof PgLineTuple
+            || column instanceof PgMacaddr
+            || column instanceof PgMacaddr8
+            || column instanceof PgNumericBigInt
+            || column instanceof PgPointObject
+            || column instanceof PgPointTuple
+            || column instanceof PgText
+            || column instanceof PgTime
+            || column instanceof PgVarchar
         ) {
             return 'string';
+        }
+
+        if (
+            column instanceof PgJson
+            || column instanceof PgJsonb
+        ) {
+            return 'textarea';
         }
 
         if (column instanceof PgBoolean) {
@@ -139,24 +155,14 @@ export class Property extends BaseProperty {
         }
 
         if (
-            column instanceof PgTime
-            || column instanceof PgTimestamp
-            || column instanceof PgDate
+            column instanceof PgDate
             || column instanceof PgDateString
         ) {
-            return 'datetime';
+            return 'date';
         }
 
-        if (
-            column instanceof PgJson
-            || column instanceof PgJsonb
-            || column instanceof PgInterval
-            || column instanceof PgPointObject
-            || column instanceof PgPointTuple
-            || column instanceof PgLineABC
-            || column instanceof PgLineTuple
-        ) {
-            return 'mixed';
+        if (column instanceof PgTimestamp) {
+            return 'datetime';
         }
 
         if (column instanceof PgUUID) {

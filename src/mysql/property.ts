@@ -8,7 +8,10 @@ import {
     MySqlChar,
     MySqlDate,
     MySqlDateTime,
+    MySqlDateTimeString,
     MySqlDecimal,
+    MySqlDecimalBigInt,
+    MySqlDecimalNumber,
     MySqlDouble,
     MySqlEnumColumn,
     MySqlFloat,
@@ -21,6 +24,7 @@ import {
     MySqlText,
     MySqlTime,
     MySqlTimestamp,
+    MySqlTimestampString,
     MySqlTinyInt,
     MySqlVarBinary,
     MySqlVarChar,
@@ -39,7 +43,7 @@ export class Property extends BaseProperty {
     }
 
     public isEditable(): boolean {
-        return !this.isId() && this.column.name !== 'createdAt' && this.column.name !== 'updatedAt';
+        return !this.isId();
     }
 
     public isId(): boolean {
@@ -59,7 +63,7 @@ export class Property extends BaseProperty {
     }
 
     public availableValues(): string[] | null {
-        return this.isEnum() ? (this.column as MySqlEnumColumn<any> | MySqlText<any>).enumValues : null;
+        return this.isEnum() ? (this.column as MySqlEnumColumn<any> | MySqlText<any> | MySqlVarChar<any>).enumValues : null;
     }
 
     public position(): number {
@@ -70,7 +74,8 @@ export class Property extends BaseProperty {
         const column = this.column;
 
         return column instanceof MySqlEnumColumn
-            || column instanceof MySqlText && column.enumValues.length;
+            || column instanceof MySqlText && column.enumValues?.length
+            || column instanceof MySqlVarChar && column.enumValues?.length;
     }
 
     public type(): PropertyType {
@@ -81,55 +86,60 @@ export class Property extends BaseProperty {
         const column = this.column;
 
         if (
-            column instanceof MySqlSerial
+            column instanceof MySqlBigInt53
             || column instanceof MySqlInt
-            || column instanceof MySqlTinyInt
-            || column instanceof MySqlSmallInt
             || column instanceof MySqlMediumInt
-            || column instanceof MySqlBigInt53
-            || column instanceof MySqlBigInt64
+            || column instanceof MySqlSerial
+            || column instanceof MySqlSmallInt
+            || column instanceof MySqlTinyInt
+            || column instanceof MySqlYear
         ) {
             return 'number';
         }
 
         if (
-            column instanceof MySqlReal
-            || column instanceof MySqlDecimal
+            column instanceof MySqlDecimal
+            || column instanceof MySqlDecimalNumber
             || column instanceof MySqlDouble
             || column instanceof MySqlFloat
+            || column instanceof MySqlReal
         ) {
             return 'float';
         }
 
         if (
-            column instanceof MySqlChar
-            || column instanceof MySqlVarChar
-            || column instanceof MySqlText
+            column instanceof MySqlBinary
+            || column instanceof MySqlBigInt64
+            || column instanceof MySqlChar
+            || column instanceof MySqlDecimalBigInt
             || column instanceof MySqlEnumColumn
+            || column instanceof MySqlText
+            || column instanceof MySqlTime
+            || column instanceof MySqlVarBinary
+            || column instanceof MySqlVarChar
         ) {
             return 'string';
+        }
+
+        if (column instanceof MySqlJson) {
+            return 'textarea';
         }
 
         if (column instanceof MySqlBoolean) {
             return 'boolean';
         }
 
-        if (
-            column instanceof MySqlDate
-            || column instanceof MySqlDateTime
-            || column instanceof MySqlTime
-            || column instanceof MySqlYear
-            || column instanceof MySqlTimestamp
-        ) {
-            return 'datetime';
+        if (column instanceof MySqlDate) {
+            return 'date';
         }
 
         if (
-            column instanceof MySqlJson
-            || column instanceof MySqlBinary
-            || column instanceof MySqlVarBinary
+            column instanceof MySqlDateTime
+            || column instanceof MySqlDateTimeString
+            || column instanceof MySqlTimestamp
+            || column instanceof MySqlTimestampString
         ) {
-            return 'mixed';
+            return 'datetime';
         }
 
         console.warn(`Unhandled type: ${ column.getSQLType() }`);

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1751630931996,
+      "tag": "0000_slim_metal_master",
+      "breakpoints": true
+    }
+  ]
+}

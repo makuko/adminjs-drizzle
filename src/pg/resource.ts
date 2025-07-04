@@ -3,7 +3,15 @@ import { desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import {
     AnyPgColumn,
     getTableConfig,
+    PgBigInt64,
     PgDatabase,
+    PgJson,
+    PgJsonb,
+    PgLineABC,
+    PgLineTuple,
+    PgNumericBigInt,
+    PgPointObject,
+    PgPointTuple,
     PgQueryResultHKT,
     PgTable,
     PgTableWithColumns,
@@ -20,10 +28,10 @@ export class Resource extends BaseResource {
 
     private propertiesObject: Record<string, Property>;
 
-    private get idColumn(): AnyPgColumn | undefined {
+    private get idColumn(): AnyPgColumn {
         const idProperty = this.properties().find(property => property.isId());
 
-        return idProperty && idProperty.column;
+        return idProperty!.column;
     }
 
     constructor(args: ResourceConfig) {
@@ -70,7 +78,7 @@ export class Resource extends BaseResource {
             .from(this.table)
             .where(convertFilter(filter));
 
-        return result[0]?.count;
+        return result[0]?.count ?? 0;
     }
 
     public async find(filter: Filter, params: Record<string, any> = {}): Promise<BaseRecord[]> {
@@ -85,68 +93,56 @@ export class Resource extends BaseResource {
             .offset(offset)
             .limit(limit);
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async findOne(id: string | number): Promise<BaseRecord | null> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return null;
-        }
-
         const result = await this.db
             .select()
             .from(this.table)
-            .where(eq(idColumn, id));
+            .where(eq(this.idColumn, id));
 
-        return result[0] ? new BaseRecord(result[0], this) : null;
+        return result[0]
+            ? new BaseRecord(this.prepareResult(result[0]), this)
+            : null;
     }
 
     public async findMany(ids: Array<string | number>): Promise<BaseRecord[]> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return [];
-        }
-
         const results = await this.db
             .select()
             .from(this.table)
-            .where(inArray(idColumn, ids));
+            .where(inArray(this.idColumn, ids));
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async create(params: Record<string, any>): Promise<Record<string, any>> {
-        const result = await this.db.insert(this.table).values(params).returning();
+        const result = await this.db
+            .insert(this.table)
+            .values(this.prepareParams(params))
+            .returning();
 
-        return result[0];
+        return this.prepareResult(result[0]);
     }
 
     public async update(id: string | number, params: Record<string, any> = {}): Promise<Record<string, any>> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return {};
-        }
-
-        const result = await this.db.update(this.table)
-            .set(params)
-            .where(eq(idColumn, id))
+        const result = await this.db
+            .update(this.table)
+            .set(this.prepareParams(params))
+            .where(eq(this.idColumn, id))
             .returning();
 
-        return result[0];
+        return this.prepareResult(result[0]);
     }
 
     public async delete(id: string | number): Promise<void> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return;
-        }
-
-        await this.db.delete(this.table).where(eq(idColumn, id));
+        await this.db
+            .delete(this.table)
+            .where(eq(this.idColumn, id));
     }
 
     public static isAdapterFor(args?: Partial<ResourceConfig>): boolean {
@@ -155,8 +151,8 @@ export class Resource extends BaseResource {
         return table instanceof PgTable && db instanceof PgDatabase;
     }
 
-    private prepareProperties(): Record<string, Property> {
-        const properties = {};
+    protected prepareProperties(): Record<string, Property> {
+        const properties: Record<string, Property> = {};
         const columns: Record<string, AnyPgColumn> = getTableColumns(this.table);
         const { foreignKeys } = getTableConfig(this.table);
 
@@ -177,6 +173,82 @@ export class Resource extends BaseResource {
         }
 
         return properties;
+    }
+
+    protected prepareParams(params: Record<string, any>): Record<string, any> {
+        const preparedParams: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(params, key);
+
+            if (typeof value === 'undefined') {
+                continue;
+            }
+
+            if (
+                property.column instanceof PgBigInt64
+                || property.column instanceof PgNumericBigInt
+            ) {
+                preparedParams[key] = BigInt(value);
+
+                continue;
+            }
+
+            if (
+                property.column instanceof PgJson
+                || property.column instanceof PgJsonb
+                || property.column instanceof PgLineABC
+                || property.column instanceof PgLineTuple
+                || property.column instanceof PgPointObject
+                || property.column instanceof PgPointTuple
+            ) {
+                preparedParams[key] = JSON.parse(value);
+
+                continue;
+            }
+
+            preparedParams[key] = value;
+
+        }
+
+        return preparedParams;
+    }
+
+    protected prepareResult(result: Record<string, any>): Record<string, any> {
+        const preparedResult: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(result, key);
+
+            if (
+                property.column instanceof PgBigInt64
+                || property.column instanceof PgNumericBigInt
+            ) {
+                preparedResult[key] = value.toString();
+
+                continue;
+            }
+
+            if (
+                property.column instanceof PgJson
+                || property.column instanceof PgJsonb
+                || property.column instanceof PgLineABC
+                || property.column instanceof PgLineTuple
+                || property.column instanceof PgPointTuple
+                || property.column instanceof PgPointObject
+            ) {
+                preparedResult[key] = JSON.stringify(value);
+
+                continue;
+            }
+
+            preparedResult[key] = value;
+
+        }
+
+        return preparedResult;
     }
 
 }

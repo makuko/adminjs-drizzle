@@ -1,42 +1,56 @@
 import AdminJSFastify from '@adminjs/fastify';
 import AdminJS from 'adminjs';
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/libsql';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import Fastify from 'fastify';
-import * as SQLiteAdapter from '../../src/sqlite/index.js';
+import * as PgAdapter from '../../src/pg/index.js';
 import * as schema from './schema.js';
 
-AdminJS.registerAdapter(SQLiteAdapter);
+AdminJS.registerAdapter(PgAdapter);
 
 const PORT = 3000;
 
 async function start() {
-    const db = drizzle(':memory:');
+    const db = drizzle();
 
-    await migrate(db, { migrationsFolder: './.drizzle/sqlite' });
+    await migrate(db, { migrationsFolder: './.drizzle/pg' });
 
     await db.insert(schema.typesTable).values({
-        id: 1,
-
         integer: 4711,
-        integerBoolean: true,
-        integerTimestampMs: new Date(),
-        integerTimestamp: new Date(),
+        smallint: 4711,
+        bigint: 4711,
 
-        real: 47.11,
+        boolean: true,
 
         text: 'foo',
         textEnum: 'foo',
-        textJson: { foo: 'bar', baz: 0},
+        varchar: 'foo',
+        varcharEnum: 'foo',
+        char: 'foo',
+        charEnum: 'foo',
 
-        blobBuffer: Buffer.from('foo'),
-        blobJson: { foo: 'bar', baz: 0 },
-        blobBigint: 4711n,
-
-        numeric: '4711',
+        numeric: '47.11',
         numericNum: 47.11,
-        numericBig: 4711n
+        numericBig: 4711n,
+        real: 47.11,
+        doublePrecision: 47.11,
+
+        json: { foo: 'bar', baz: 0 },
+        jsonb: { foo: 'bar', baz: 0 },
+
+        time: '11:47:00',
+        timestamp: new Date(),
+        date: new Date(),
+        dateStr: new Date().toISOString(),
+        interval: '47 days 11 hours',
+
+        point: [1, 2],
+        pointObj: { x: 1, y: 2},
+        line: [1, 2, 3],
+        lineObj: { a: 1, b: 2, c: 3},
+
+        enum: 'foo'
     });
 
     const app = Fastify();

@@ -3,10 +3,15 @@ import { desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import {
     AnyMySqlColumn,
     getTableConfig,
+    MySqlBigInt64,
     MySqlDatabase,
+    MySqlDateTimeString,
+    MySqlDecimalBigInt,
+    MySqlJson,
     MySqlQueryResultHKT,
     MySqlTable,
     MySqlTableWithColumns,
+    MySqlTimestampString,
     PreparedQueryHKTBase,
     TableConfig
 } from 'drizzle-orm/mysql-core';
@@ -21,10 +26,10 @@ export class Resource extends BaseResource {
 
     private propertiesObject: Record<string, Property>;
 
-    private get idColumn(): AnyMySqlColumn | undefined {
+    private get idColumn(): AnyMySqlColumn {
         const idProperty = this.properties().find(property => property.isId());
 
-        return idProperty && idProperty.column;
+        return idProperty!.column;
     }
 
     constructor(args: ResourceConfig) {
@@ -42,7 +47,7 @@ export class Resource extends BaseResource {
     }
 
     public databaseType(): string {
-        return 'postgres';
+        return 'mysql';
     }
 
     public name(): string {
@@ -86,79 +91,60 @@ export class Resource extends BaseResource {
             .offset(offset)
             .limit(limit);
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async findOne(id: string | number): Promise<BaseRecord | null> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return null;
-        }
-
         const result = await this.db
             .select()
             .from(this.table)
-            .where(eq(idColumn, id));
+            .where(eq(this.idColumn, id));
 
-        return result[0] ? new BaseRecord(result[0], this) : null;
+        return result[0]
+            ? new BaseRecord(this.prepareResult(result[0]), this)
+            : null;
     }
 
     public async findMany(ids: Array<string | number>): Promise<BaseRecord[]> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return [];
-        }
-
         const results = await this.db
             .select()
             .from(this.table)
-            .where(inArray(idColumn, ids));
+            .where(inArray(this.idColumn, ids));
 
-        return results.map(result => new BaseRecord(result, this));
+        return results.map(
+            result => new BaseRecord(this.prepareResult(result), this)
+        );
     }
 
     public async create(params: Record<string, any>): Promise<Record<string, any>> {
         const idColumn = this.idColumn;
 
-        await this.db.insert(this.table).values(params);
+        const [id] = await this.db.insert(this.table).values(this.prepareParams(params)).$returningId() as any;
+        const result = await this.db.select().from(this.table).where(eq(idColumn, id[idColumn.name]));
 
-        if (idColumn && idColumn['autoIncrement']) {
-            const result = await this.db.select().from(this.table).where(eq(idColumn, sql`last_insert_id()`));
-
-            return result[0];
-        }
-
-        return params;
+        return this.prepareResult(result[0]);
     }
 
     public async update(id: string | number, params: Record<string, any> = {}): Promise<Record<string, any>> {
         const idColumn = this.idColumn;
 
-        if (!idColumn) {
-            return {};
-        }
-
         await this.db.update(this.table)
-            .set(params)
+            .set(this.prepareParams(params))
             .where(eq(idColumn, id));
 
         const result = await this.db.select()
             .from(this.table)
             .where(eq(idColumn, id));
 
-        return result[0];
+        return this.prepareResult(result[0]);
     }
 
     public async delete(id: string | number): Promise<void> {
-        const idColumn = this.idColumn;
-
-        if (!idColumn) {
-            return;
-        }
-
-        await this.db.delete(this.table).where(eq(idColumn, id));
+        await this.db
+            .delete(this.table)
+            .where(eq(this.idColumn, id));
     }
 
     public static isAdapterFor(args?: Partial<ResourceConfig>): boolean {
@@ -168,7 +154,7 @@ export class Resource extends BaseResource {
     }
 
     private prepareProperties(): Record<string, Property> {
-        const properties = {};
+        const properties: Record<string, Property> = {};
         const columns: Record<string, AnyMySqlColumn> = getTableColumns(this.table);
         const { foreignKeys } = getTableConfig(this.table);
 
@@ -189,6 +175,86 @@ export class Resource extends BaseResource {
         }
 
         return properties;
+    }
+
+    protected prepareParams(params: Record<string, any>): Record<string, any> {
+        const preparedParams: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(params, key);
+
+            if (typeof value === 'undefined') {
+                continue;
+            }
+
+            if (
+                property.column instanceof MySqlBigInt64
+                || property.column instanceof MySqlDecimalBigInt
+            ) {
+                preparedParams[key] = BigInt(value);
+
+                continue;
+            }
+
+            if (
+                property.column instanceof MySqlDateTimeString
+                || property.column instanceof MySqlTimestampString
+            ) {
+                preparedParams[key] = value.toISOString().slice(0, 19).replace('T', ' ');
+
+                continue;
+            }
+
+            if (property.column instanceof MySqlJson) {
+                preparedParams[key] = JSON.parse(value);
+
+                continue;
+            }
+
+            preparedParams[key] = value;
+
+        }
+
+        return preparedParams;
+    }
+
+    protected prepareResult(result: Record<string, any>): Record<string, any> {
+        const preparedResult: Record<string, any> = {};
+
+        for (const property of this.properties()) {
+            const key = property.path();
+            const value = flat.get(result, key);
+
+            if (
+                property.column instanceof MySqlBigInt64
+                || property.column instanceof MySqlDecimalBigInt
+            ) {
+                preparedResult[key] = value.toString();
+
+                continue;
+            }
+
+            if (
+                property.column instanceof MySqlDateTimeString
+                || property.column instanceof MySqlTimestampString
+            ) {
+                preparedResult[key] = new Date(value);
+
+                continue;
+            }
+
+            if (property.column instanceof MySqlJson) {
+                preparedResult[key] = JSON.stringify(value);
+
+                continue;
+            }
+
+            preparedResult[key] = value;
+
+        }
+
+        return preparedResult;
     }
 
 }

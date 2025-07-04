@@ -6,6 +6,9 @@ import {
     SQLiteBlobJson,
     SQLiteBoolean,
     SQLiteInteger,
+    SQLiteNumeric,
+    SQLiteNumericBigInt,
+    SQLiteNumericNumber,
     SQLiteReal,
     SQLiteText,
     SQLiteTextJson,
@@ -24,7 +27,7 @@ export class Property extends BaseProperty {
     }
 
     public isEditable(): boolean {
-        return !this.isId() && this.column.name !== 'createdAt' && this.column.name !== 'updatedAt';
+        return !this.isId();
     }
 
     public isId(): boolean {
@@ -64,19 +67,34 @@ export class Property extends BaseProperty {
 
         const column = this.column;
 
-        if (
-            column instanceof SQLiteInteger
-            || column instanceof SQLiteBigInt
-        ) {
+        if (column instanceof SQLiteInteger) {
             return 'number';
         }
 
-        if (column instanceof SQLiteReal) {
+        if (
+            column instanceof SQLiteReal
+            || column instanceof SQLiteNumericNumber
+        ) {
             return 'float';
         }
 
-        if (column instanceof SQLiteText) {
+        if (
+            column instanceof SQLiteBigInt
+            || column instanceof SQLiteBlobBuffer
+            || column instanceof SQLiteBlobJson
+            || column instanceof SQLiteNumeric
+            || column instanceof SQLiteNumericBigInt
+            || column instanceof SQLiteText
+            || column instanceof SQLiteTextJson
+        ) {
             return 'string';
+        }
+
+        if (
+            column instanceof SQLiteTextJson
+            || column instanceof SQLiteBlobJson
+        ) {
+            return 'textarea';
         }
 
         if (column instanceof SQLiteBoolean) {
@@ -85,14 +103,6 @@ export class Property extends BaseProperty {
 
         if (column instanceof SQLiteTimestamp) {
             return 'datetime';
-        }
-
-        if (
-            column instanceof SQLiteTextJson
-            || column instanceof SQLiteBlobBuffer
-            || column instanceof SQLiteBlobJson
-        ) {
-            return 'mixed';
         }
 
         console.warn(`Unhandled type: ${ column.getSQLType() }`);
