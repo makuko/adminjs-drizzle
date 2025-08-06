@@ -12,17 +12,24 @@
   "repository": "makuko/adminjs-drizzle",
   "type": "module",
   "exports": {
-    "mysql": {
+    "./mysql": {
       "types": "./dist/mysql/index.d.ts",
       "default": "./dist/mysql/index.js"
     },
-    "pg": {
+    "./pg": {
       "types": "./dist/pg/index.d.ts",
       "default": "./dist/pg/index.js"
     },
-    "sqlite": {
+    "./sqlite": {
       "types": "./dist/sqlite/index.d.ts",
       "default": "./dist/sqlite/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "pg": ["./dist/pg/index.d.ts"],
+      "sqlite": ["./dist/sqlite/index.d.ts"],
+      "mysql": ["./dist/mysql/index.d.ts"]
     }
   },
   "files": [
